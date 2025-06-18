@@ -4,6 +4,7 @@ import cv2
 import json
 import os
 from tkinter import *
+from tkinter import filedialog
 from PIL import Image, ImageTk
 
 # === Load model dan class indices ===
@@ -28,7 +29,7 @@ cap = None
 running = False
 threshold = 10  # Minimum confidence %
 
-# === Fungsi klasifikasi dan kamera ===
+# === Fungsi klasifikasi dari kamera ===
 def classify_and_display():
     global cap, running
     if not running:
@@ -39,25 +40,9 @@ def classify_and_display():
         label_result.config(text="Tidak bisa mengambil frame.")
         return
 
-    img = cv2.resize(frame, (224, 224))
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    img_array = tf.keras.preprocessing.image.img_to_array(img_rgb)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array = tf.keras.applications.mobilenet.preprocess_input(img_array)
+    pred_label = predict_frame(frame)
+    label_result.config(text=pred_label)
 
-    predictions = model.predict(img_array)
-    score = tf.nn.softmax(predictions[0])
-    predicted_class = class_names[np.argmax(score)]
-    confidence = 100 * np.max(score)
-
-    if confidence < threshold:
-        label = "Bukan Kucing"
-    else:
-        label = f"{predicted_class} ({confidence:.2f}%)"
-
-    label_result.config(text=label)
-
-    # Tampilkan frame di canvas
     img_tk = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
     canvas.imgtk = img_tk
     canvas.create_image(0, 0, anchor=NW, image=img_tk)
@@ -81,33 +66,100 @@ def stop_camera():
     canvas.delete("all")
     label_result.config(text="Kamera dimatikan.")
 
+# === Fungsi klasifikasi gambar upload ===
+def upload_image():
+    global running
+    running = False
+    if cap:
+        cap.release()
+
+    file_path = filedialog.askopenfilename(
+        filetypes=[("Image Files", "*.jpg *.jpeg *.png")]
+    )
+    if not file_path:
+        return
+
+    image = Image.open(file_path).convert("RGB")
+    resized_image = image.resize((224, 224))
+    img_array = tf.keras.preprocessing.image.img_to_array(resized_image)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array = tf.keras.applications.mobilenet.preprocess_input(img_array)
+
+    predictions = model.predict(img_array)
+    score = tf.nn.softmax(predictions[0])
+    predicted_class = class_names[np.argmax(score)]
+    confidence = 100 * np.max(score)
+
+    if confidence < threshold:
+        label = "Bukan Kucing"
+    else:
+        label = f"{predicted_class} ({confidence:.2f}%)"
+
+    # Tampilkan ke canvas
+    display_image = image.resize((800, 500))
+    img_tk = ImageTk.PhotoImage(display_image)
+    canvas.imgtk = img_tk
+    canvas.create_image(0, 0, anchor=NW, image=img_tk)
+    label_result.config(text=label)
+
+# === Fungsi klasifikasi frame (kamera) ===
+def predict_frame(frame):
+    img = cv2.resize(frame, (224, 224))
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    img_array = tf.keras.preprocessing.image.img_to_array(img_rgb)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array = tf.keras.applications.mobilenet.preprocess_input(img_array)
+
+    predictions = model.predict(img_array)
+    score = tf.nn.softmax(predictions[0])
+    predicted_class = class_names[np.argmax(score)]
+    confidence = 100 * np.max(score)
+
+    if confidence < threshold:
+        return "Bukan Kucing"
+    else:
+        return f"{predicted_class} ({confidence:.2f}%)"
+
 # === UI Setup ===
 root = Tk()
-root.title("Aplikasi Klasifikasi Ras Kucing")
-root.geometry("900x650")  # Window lebar
+root.title("Klasifikasi Ras Kucing")
+root.geometry("1000x700")
+root.configure(bg="#4A90E2")
 
-# ==== Frame tampilan kamera ====
-canvas_frame = Frame(root)
+# Main frame
+main_frame = Frame(root, bg="#FFFFFF", padx=20, pady=20, relief="raised", bd=5)
+main_frame.place(relx=0.5, rely=0.5, anchor=CENTER)
+
+# Canvas frame
+canvas_frame = Frame(main_frame, bg="#FFFFFF")
 canvas_frame.pack(pady=10)
 
-canvas = Canvas(canvas_frame, width=800, height=500, bg='black')
+canvas = Canvas(canvas_frame, width=800, height=500, bg='#E6F0FA', highlightthickness=2, highlightbackground="#4A90E2")
 canvas.pack()
 
-# ==== Label hasil prediksi ====
-label_result = Label(root, text="Tekan Start untuk klasifikasi", font=("Helvetica", 18), fg="blue")
-label_result.pack(pady=15)
+# Result label
+label_result = Label(main_frame, text="Tekan Start atau Upload Gambar", font=("Helvetica", 20, "bold"), fg="#2E2E2E", bg="#FFFFFF")
+label_result.pack(pady=20)
 
-# ==== Tombol kontrol ====
-button_frame = Frame(root)
-button_frame.pack(pady=10)
+# Button frame
+button_frame = Frame(main_frame, bg="#FFFFFF")
+button_frame.pack(pady=20)
 
-btn_start = Button(button_frame, text="Start Camera", command=start_camera, width=20, height=2, font=("Arial", 14),
-                   bg='green', fg='white')
-btn_start.grid(row=0, column=0, padx=20)
+btn_start = Button(button_frame, text="Start Camera", command=start_camera, width=15, height=2, font=("Arial", 14, "bold"),
+                   bg="#4CAF50", fg="white", activebackground="#45a049", relief="flat", cursor="hand2")
+btn_start.grid(row=0, column=0, padx=10)
 
-btn_stop = Button(button_frame, text="Stop", command=stop_camera, width=20, height=2, font=("Arial", 14),
-                  bg='red', fg='white')
-btn_stop.grid(row=0, column=1, padx=20)
+btn_stop = Button(button_frame, text="Stop", command=stop_camera, width=15, height=2, font=("Arial", 14, "bold"),
+                  bg="#F44336", fg="white", activebackground="#da190b", relief="flat", cursor="hand2")
+btn_stop.grid(row=0, column=1, padx=10)
 
-# === Jalankan aplikasi ===
+btn_upload = Button(button_frame, text="Upload Gambar", command=upload_image, width=15, height=2, font=("Arial", 14, "bold"),
+                    bg="#2196F3", fg="white", activebackground="#1976D2", relief="flat", cursor="hand2")
+btn_upload.grid(row=0, column=2, padx=10)
+
+# Decorative title
+title_label = Label(root, text="Aplikasi Klasifikasi Ras Kucing", font=("Helvetica", 24, "bold"), fg="#FFFFFF", bg="#4A90E2")
+title_label.pack(pady=10)
+
+# Jalankan aplikasi
 root.mainloop()
