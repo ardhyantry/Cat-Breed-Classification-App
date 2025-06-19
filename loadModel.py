@@ -180,13 +180,13 @@ def predict_frame(frame):
     confidence = 100 * np.max(score)
 
     if confidence < threshold:
-        return "Bukan Kucing"
+        return "Not a Cat"
     else:
         return f"{predicted_class} ({confidence:.2f}%)"
 
 # === UI Setup ===
 root = Tk()
-root.title("Klasifikasi Ras Kucing")
+root.title("Cat Breed Classification")
 root.geometry("1000x700")
 root.configure(bg="#4A90E2")
 
@@ -222,7 +222,7 @@ btn_upload = Button(button_frame, text="Upload Gambar", command=upload_image, wi
 btn_upload.grid(row=0, column=2, padx=10)
 
 # Decorative title
-title_label = Label(root, text="Aplikasi Klasifikasi Ras Kucing", font=("Helvetica", 24, "bold"), fg="#FFFFFF", bg="#4A90E2")
+title_label = Label(root, text="Cat Breed Classification App", font=("Helvetica", 24, "bold"), fg="#FFFFFF", bg="#4A90E2")
 title_label.pack(pady=10)
 
 # Jalankan aplikasi
