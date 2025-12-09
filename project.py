@@ -27,6 +27,12 @@ train_datagen = ImageDataGenerator(
     channel_shift_range=50.0            
 )
 
+# Optimize: Create separate validation generator without augmentation for better performance
+validation_datagen = ImageDataGenerator(
+    rescale=1./255,
+    validation_split=0.2
+)
+
 train_generator = train_datagen.flow_from_directory(
     path,                                
     target_size=(img_size, img_size),    
@@ -35,7 +41,8 @@ train_generator = train_datagen.flow_from_directory(
     subset='training'                    
 )
 
-validation_generator = train_datagen.flow_from_directory(
+# Optimize: Use validation_datagen without augmentation for validation data
+validation_generator = validation_datagen.flow_from_directory(
     path,
     target_size=(img_size, img_size),
     batch_size=32,
