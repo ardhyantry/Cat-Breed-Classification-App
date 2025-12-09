@@ -79,7 +79,7 @@ while True:
         img_array = tf.keras.applications.mobilenet.preprocess_input(img_array)
         
         # Membuat prediksi
-        predictions = model.predict(img_array, verbose=0)  # Optimize: verbose=0 to suppress output
+        predictions = model.predict(img_array, verbose=0)  # Optimize: verbose=0 reduces console I/O overhead
         score = tf.nn.softmax(predictions[0])
         
         # Mendapatkan nama kelas dengan probabilitas tertinggi
