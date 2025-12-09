@@ -28,9 +28,12 @@ for class_name, index in class_indices.items():
 cap = None
 running = False
 threshold = 10  # Minimum confidence %
-# Optimize: Add frame skipping for reduced CPU usage during real-time prediction
+
+# Performance optimization constants
+FRAME_SKIP_RATE = 2  # Process every 2nd frame for prediction to reduce CPU usage
+
+# Frame processing variables
 frame_skip_counter = 0
-frame_skip_rate = 2  # Process every 2nd frame for prediction
 last_prediction = "Initializing..."
 
 # === Fungsi klasifikasi dari kamera ===
@@ -86,7 +89,7 @@ def classify_and_display():
 
     # Optimize: Skip prediction on some frames to reduce CPU usage
     frame_skip_counter += 1
-    if frame_skip_counter >= frame_skip_rate:
+    if frame_skip_counter >= FRAME_SKIP_RATE:
         frame_skip_counter = 0
         last_prediction = predict_frame(frame)
     

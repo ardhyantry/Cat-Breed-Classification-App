@@ -12,6 +12,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLRO
 path = '/Users/ardhyantry/Documents/COMVI/cat breeds1'
 
 img_size = 224
+VALIDATION_SPLIT = 0.2  # Proportion of data used for validation
 
 train_datagen = ImageDataGenerator(
     rescale=1./255,                     
@@ -22,7 +23,7 @@ train_datagen = ImageDataGenerator(
     zoom_range=0.2,                     
     horizontal_flip=True,               
     fill_mode='nearest',                
-    validation_split=0.2,               
+    validation_split=VALIDATION_SPLIT,               
     brightness_range=[0.2, 1.0],        
     channel_shift_range=50.0            
 )
@@ -30,7 +31,7 @@ train_datagen = ImageDataGenerator(
 # Optimize: Create separate validation generator without augmentation for better performance
 validation_datagen = ImageDataGenerator(
     rescale=1./255,
-    validation_split=0.2
+    validation_split=VALIDATION_SPLIT
 )
 
 train_generator = train_datagen.flow_from_directory(

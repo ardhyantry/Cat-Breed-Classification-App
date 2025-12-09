@@ -38,11 +38,15 @@ print("Mengakses kamera. Tekan 'q' untuk keluar.")
 # Threshold untuk mendeteksi bukan kucing (misalnya 50%)
 threshold = 10
 
+# Performance optimization constants
+FRAME_SKIP = 3  # Process every 3rd frame for prediction to reduce CPU usage
+
 # Optimize: Load face cascade once outside the loop to improve performance
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalcatface.xml')
+if face_cascade.empty():
+    raise RuntimeError("Failed to load Haar Cascade classifier for cat face detection")
 
-# Optimize: Add frame skipping for prediction to reduce CPU usage
-frame_skip = 3  # Process every 3rd frame for prediction
+# Frame processing variables
 frame_count = 0
 last_label = "Initializing..."
 
@@ -64,7 +68,7 @@ while True:
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
     # Optimize: Only run prediction every N frames to reduce CPU usage
-    if frame_count % frame_skip == 0:
+    if frame_count % FRAME_SKIP == 0:
         # Mengubah ukuran gambar untuk prediksi
         img = cv2.resize(frame, (224, 224))
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
