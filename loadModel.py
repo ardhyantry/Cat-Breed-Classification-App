@@ -29,9 +29,16 @@ cap = None
 running = False
 threshold = 10  # Minimum confidence %
 
+# Performance optimization constants
+FRAME_SKIP_RATE = 2  # Process every 2nd frame for prediction to reduce CPU usage
+
+# Frame processing variables
+frame_skip_counter = 0
+last_prediction = "Initializing..."
+
 # === Fungsi klasifikasi dari kamera ===
 def classify_and_display():
-    global cap, running
+    global cap, running, frame_skip_counter, last_prediction
     if not running:
         return
     
@@ -74,13 +81,19 @@ def classify_and_display():
     # Paste the resized frame onto the blank image
     final_display_image_bgr[y_offset : y_offset + new_height, x_offset : x_offset + new_width] = display_frame
 
+    # Convert and display frame on canvas
     img_tk = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(final_display_image_bgr, cv2.COLOR_BGR2RGB)))
-    canvas.imgtk = img_tk
+    canvas.imgtk = img_tk  # Keep reference to prevent garbage collection
     canvas.create_image(0, 0, anchor=NW, image=img_tk)
     # --- End: Display frame logic ---
 
-    pred_label = predict_frame(frame) 
-    label_result.config(text=pred_label)
+    # Optimize: Skip prediction on some frames to reduce CPU usage
+    frame_skip_counter += 1
+    if frame_skip_counter >= FRAME_SKIP_RATE:
+        frame_skip_counter = 0
+        last_prediction = predict_frame(frame)
+    
+    label_result.config(text=last_prediction)
 
     root.after(10, classify_and_display)
 
@@ -135,7 +148,8 @@ def upload_image():
         new_display_height = canvas_height
         new_display_width = int(new_display_height * aspect_ratio)
 
-    display_image_pil = image.resize((new_display_width, new_display_height), Image.LANCZOS)
+    # Optimize: Use BILINEAR for faster resizing (for display)
+    display_image_pil = image.resize((new_display_width, new_display_height), Image.BILINEAR)
     
     # Create a blank image to center the resized image
     final_display_image_pil = Image.new('RGB', (canvas_width, canvas_height), (0, 0, 0)) # Black background
@@ -143,13 +157,13 @@ def upload_image():
     y_offset = (canvas_height - new_display_height) // 2
     final_display_image_pil.paste(display_image_pil, (x_offset, y_offset))
 
-    # For model prediction, resize to 224x224
-    resized_for_model = image.resize((224, 224))
+    # Optimize: Use BILINEAR for faster resizing (for model input)
+    resized_for_model = image.resize((224, 224), Image.BILINEAR)
     img_array = tf.keras.preprocessing.image.img_to_array(resized_for_model)
     img_array = np.expand_dims(img_array, axis=0)
     img_array = tf.keras.applications.mobilenet.preprocess_input(img_array)
 
-    predictions = model.predict(img_array)
+    predictions = model.predict(img_array, verbose=0)  # Optimize: verbose=0 reduces console I/O overhead
     score = tf.nn.softmax(predictions[0])
     predicted_class = class_names[np.argmax(score)]
     confidence = 100 * np.max(score)
@@ -174,7 +188,7 @@ def predict_frame(frame):
     img_array = np.expand_dims(img_array, axis=0)
     img_array = tf.keras.applications.mobilenet.preprocess_input(img_array)
 
-    predictions = model.predict(img_array, verbose=0) # verbose=0 to suppress prediction output
+    predictions = model.predict(img_array, verbose=0)  # Optimize: verbose=0 reduces console I/O overhead
     score = tf.nn.softmax(predictions[0])
     predicted_class = class_names[np.argmax(score)]
     confidence = 100 * np.max(score)
